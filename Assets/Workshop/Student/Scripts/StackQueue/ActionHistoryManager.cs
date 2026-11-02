@@ -19,18 +19,34 @@ namespace Solution
         {
             // Only push a state if it's different from the last saved state 
             // (optional optimization, but good practice for movement)
-        
+            undoStack.Push(currentPosition);
+            redoStack.Clear();
+
         }
         /// Reverts the player's state to the previous one using the undo stack.
         /// </summary>
         public void UndoLastMove(OOPPlayer player)
         {
-            // Need at least two states: the current one, and the one to revert to.
-           
+            if (undoStack.Count == 0)
+            {
+                return;
+            }
+            var p = undoStack.Pop();
+            redoStack.Push(p);
+
+            var prevPosition = undoStack.Peek();
+            player.UpdatePosition((int)prevPosition.x, (int)prevPosition.y);
+
         }
         public void RedoLastMove(OOPPlayer player)
         {
-            // Need at least two states: the current one, and the one to revert to.
+            if (redoStack.Count == 0)
+            {
+                return;
+            }           
+            var p = redoStack.Pop();
+            undoStack.Push(p);
+            player.UpdatePosition((int)p.x, (int)p.y);
 
         }
         #endregion
@@ -39,10 +55,22 @@ namespace Solution
 
         public void StartAutoMoveSequence(OOPPlayer player)
         {
-            //create a sample sequence of moves
-            // 1. prepare the Queue with the sequence of moves
+            Vector2[] moves = new Vector2[]
+           {
+                Vector2.right,
+                Vector2.left,
+                Vector2.right,
+                Vector2.up,
+                Vector2.up,
+                Vector2.up,
 
-            // Start the coroutine to process the auto-move sequence
+           };
+
+            for (int i = 0; i < moves.Length; i++)
+            {
+                autoMoveQueue.Enqueue(moves[i]);
+            }
+    
             StartCoroutine(ProcessAutoMoveSequence(player));
         }
         public IEnumerator ProcessAutoMoveSequence(OOPPlayer player)
@@ -52,6 +80,13 @@ namespace Solution
 
             // 2. process the Queue step-by-step
             yield return new WaitForSeconds(0.5f); // Initial delay before starting
+
+            while (autoMoveQueue.Count > 0)
+            {
+                var dir = autoMoveQueue.Dequeue();
+                player.Move(dir);
+                yield return new WaitForSeconds(0.5f);
+            }
 
             player.isAutoMoving = false;
             Debug.Log("Auto-move sequence finished.");
